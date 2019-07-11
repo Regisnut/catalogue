@@ -57,17 +57,17 @@ app.get("/department", async (req, res) => {
 // UPDATE DEPARTMENT
 app.post("/department/update", async (req, res) => {
   try {
-    if (req.query.id && req.body.title) {
-      console.log(req.body.title);
-      const department = await Department.findById(req.body.id);
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const department = await Department.findById(req.body.id);
+    const id = req.query.id; //sur postman mettre update/?id=....
+    const department = await Department.findById(id);
+    // Autre manière de trouver un document à partir d'un `id` :
+    // const department = await Department.findById(req.body.id);
+    if (department) {
       department.title = req.body.title;
 
       await department.save();
       res.json({ message: "Updated" });
     } else {
-      res.status(404).json({ message: "Missing parameter" });
+      res.status(404).json({ error: error.message });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -76,14 +76,16 @@ app.post("/department/update", async (req, res) => {
 //DELETE DEPARTMENT
 app.post("/department/delete", async (req, res) => {
   try {
-    if (req.body.id) {
-      const department = await Department.findById({ id: req.body.id });
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const student = await Student.findById(req.body.id);
+    const id = req.query.id;
+    const department = await Department.findById(id);
+    // verif q objet a bien été trouvé
+    //if (department !== null && department !== undefined && department !== 0&&department!=="")
+
+    if (department) {
       await department.remove();
       res.json({ message: "Removed" });
     } else {
-      res.status(400).json({ message: "Missing id" });
+      res.status(404).json({ message: "Missing id" });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -124,10 +126,11 @@ app.get("/category", async (req, res) => {
 //**UPDATE**/
 app.post("/category/update", async (req, res) => {
   try {
-    if (req.body.id && req.body.title) {
-      const category = await Category.findById({ id: req.body.id });
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const student = await Student.findById(req.body.id);
+    const id = req.query.id;
+    const category = await Category.findById(id);
+    // Autre manière de trouver un document à partir d'un `id` :
+    // const student = await Student.findById(req.body.id);
+    if (category) {
       category.title = req.body.title;
       category.description = req.body.description;
       category.department = req.body.department;
@@ -143,14 +146,15 @@ app.post("/category/update", async (req, res) => {
 // **Delete**
 app.post("/category/delete", async (req, res) => {
   try {
-    if (req.body.id) {
-      const category = await Category.findById({ id: req.body.id });
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const student = await Student.findById(req.body.id);
+    const id = req.query.id;
+    const category = await Category.findById(id);
+    // Autre manière de trouver un document à partir d'un `id` :
+    // const student = await Student.findById(req.body.id);
+    if (category) {
       await category.remove();
       res.json({ message: "Removed" });
     } else {
-      res.status(400).json({ message: "Missing id" });
+      res.status(404).json({ message: "Missing id" });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -175,18 +179,36 @@ app.post("/product/create", async (req, res) => {
     });
   }
 });
+
 //**READ PRODUCT */
 app.get("/product", async (req, res) => {
   try {
-    const existingProduct = await Product.findOne({
-      category: req.body.category
-    });
-    if (existingProduct === req.body.category) {
-      const product = await Product.find({ price: { $gte: 100 } }).populate(
-        "Category"
-      );
-      res.json(product);
+    let params = {};
+    if (req.query.category) {
+      params.category = req.query.category;
     }
+    if (req.query.title) {
+      params.title = req.query.title;
+    }
+    if (req.query.priceMin) {
+      params.price = { $gte: req.query.priceMin };
+    } else if (req.query.priceMax) {
+      params.price = { $lte: req.query.priceMax };
+    }
+    if (req.query.sort === "price-asc") {
+      search.sort({ price: 1 });
+    }
+    const product = await Product.find(params).populate("category"); //{ params.priceMin: { $gte: 100 } })
+    // const fil = filter(req);
+    // console.log(fil);
+    // const lolo = await product.find(fil);
+
+    return res.json(product);
+
+    // else{
+    //     const product = await Product.find().populate("Category");
+    //     res.json(product);
+    // }
   } catch (error) {
     return res.status(400).json({
       error: error.message
@@ -196,10 +218,11 @@ app.get("/product", async (req, res) => {
 //**UPDATE PRODUCT**/
 app.post("/product/update", async (req, res) => {
   try {
-    if (req.body.id && req.body.title) {
-      const product = await Product.findById({ id: req.body.id });
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const student = await Student.findById(req.body.id);
+    const id = req.query.id;
+    const product = await Product.findById(id);
+    // Autre manière de trouver un document à partir d'un `id` :
+    // const student = await Student.findById(req.body.id);
+    if (product) {
       product.title = req.body.title;
       product.description = req.body.description;
       product.price = req.body.price;
@@ -216,14 +239,15 @@ app.post("/product/update", async (req, res) => {
 // **Delete**
 app.post("/product/delete", async (req, res) => {
   try {
-    if (req.body.id) {
-      const product = await Product.findById({ id: req.body.id });
-      // Autre manière de trouver un document à partir d'un `id` :
-      // const student = await Student.findById(req.body.id);
+    const id = req.query.id;
+    const product = await Product.findById(id);
+    // Autre manière de trouver un document à partir d'un `id` :
+    // const student = await Student.findById(req.body.id);
+    if (product) {
       await product.remove();
       res.json({ message: "Removed" });
     } else {
-      res.status(400).json({ message: "Missing id" });
+      res.status(404).json({ message: "Missing id" });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
