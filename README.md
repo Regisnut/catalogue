@@ -5,5 +5,5 @@
 ### titre H3
 
 ```js
-index.js;
+const str = "Hello World";
 ```
