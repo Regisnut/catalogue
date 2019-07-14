@@ -19,13 +19,39 @@ const Category = mongoose.model("Category", {
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Department"
-  } //(référence vers Department)
+  } //(référence vers Department- TYPE : mongoose.Schema.Types.ObjectId,ref:"xxxxx")
 });
 const Product = mongoose.model("Product", {
   title: { type: String, require: true, default: "" },
   description: { type: String, require: true, default: "" },
   price: { type: Number, require: true },
-  category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" } //(référence vers Category)
+  category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" }, //(référence vers Category)
+  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
+  averageRating: { type: Number, min: 0, max: 5 }
+});
+
+//BONUS collection Review (rating, comment, username)
+const Review = mongoose.model("Review", {
+  rating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    required: true
+  },
+  comment: {
+    type: String,
+    minlength: 0,
+    maxlength: 150,
+    trim: true,
+    required: true
+  },
+  username: {
+    type: String,
+    minlength: 3,
+    maxlength: 15,
+    trim: true,
+    required: true
+  }
 });
 
 //route Department Create,Read, Update, Delete
@@ -180,7 +206,7 @@ app.post("/product/create", async (req, res) => {
   }
 });
 
-//**READ PRODUCT */
+//**READ PRODUCT filtre objet avec des req.query*/
 app.get("/product", async (req, res) => {
   try {
     let params = {};
@@ -197,11 +223,11 @@ app.get("/product", async (req, res) => {
     }
     if (req.query.sort === "price-asc") {
       search.sort({ price: 1 });
+    } else if (req.query.sort === "price-desc") {
+      search.sort({ price: -1 });
     }
+
     const product = await Product.find(params).populate("category"); //{ params.priceMin: { $gte: 100 } })
-    // const fil = filter(req);
-    // console.log(fil);
-    // const lolo = await product.find(fil);
 
     return res.json(product);
 
@@ -230,7 +256,7 @@ app.post("/product/update", async (req, res) => {
       await product.save();
       res.json({ message: "Updated" });
     } else {
-      res.status(400).json({ message: "Missing parameter" });
+      res.status(404).json({ message: "Missing parameter" });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -249,6 +275,23 @@ app.post("/product/delete", async (req, res) => {
     } else {
       res.status(404).json({ message: "Missing id" });
     }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+///POST http://localhost:3000/review/create
+app.post("/review/create", async (req, res) => {
+  try {
+    const review = new Review({
+      product: req.body.product, //identifiant du produit
+      rating: req.body.rating, //nv note
+      comment: req.body.comment, //nv comment
+      username: req.body.username //nomusername
+    });
+
+    await review.save();
+    res.json({ message: "Review created" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
